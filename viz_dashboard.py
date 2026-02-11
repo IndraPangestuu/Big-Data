@@ -10,6 +10,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
+import joblib
+from datetime import datetime, timedelta
 
 # Page config
 st.set_page_config(
@@ -52,6 +54,23 @@ st.markdown("""
         font-size: 0.9rem;
         color: #666;
     }
+    .insight-box {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #1f77b4;
+        margin-top: 1rem;
+    }
+    .insight-title {
+        font-weight: bold;
+        color: #1f77b4;
+        margin-bottom: 0.5rem;
+    }
+    .insight-text {
+        font-size: 0.9rem;
+        color: #555;
+        line-height: 1.5;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -62,6 +81,35 @@ SYNTHETIC_FILE = "synthetic_traffic_jakarta.csv"
 HALTE_FILE_SHORT = "data-halte-transjakarta-(1765634868619).csv"
 TRAYEK_FILE = "data-trayek-bus-transjakarta-(1765634860472).csv"
 REKAP_FILE = "data-rekap-lalu-lintas-di-dki-jakarta-(1765634832516).csv"
+MODEL_FILE = "traffic_model.pkl"
+
+# Locations for prediction
+PREDICTION_LOCATIONS = [
+    "Sudirman-Thamrin",
+    "Harmoni",
+    "Semanggi",
+    "Kuningan",
+    "Tol Dalam Kota",
+    "Tol Jagorawi",
+    "Tol JORR",
+    "Bekasi-Cawang",
+    "Cibubur-Cililitan",
+    "Tangerang-Kamal",
+    "Bogor-Ciawi",
+]
+
+# Weather options
+WEATHER_OPTIONS = ['clear', 'partly_cloudy', 'cloudy', 'light_rain', 'moderate_rain', 'heavy_rain', 'storm']
+
+# LOS descriptions
+LOS_DESCRIPTIONS = {
+    'A': 'Free Flow (0-20) - Lalu lintas lancar tanpa hambatan',
+    'B': 'Reasonably Free Flow (20-40) - Arus lalu lintas stabil dengan sedikit hambatan',
+    'C': 'Stable Flow (40-60) - Arus stabil namun mulai terasa padat',
+    'D': 'Approaching Unstable (60-75) - Padat, kecepatan menurun',
+    'E': 'Unstable Flow (75-90) - Sangat padat, macet',
+    'F': 'Forced Flow (90-100) - Macet total / gridlock'
+}
 
 
 @st.cache_data
@@ -120,6 +168,109 @@ def create_los_color_scale():
         'E': '#e74c3c',
         'F': '#8b0000'
     }
+
+
+def render_insight(title, text, icon="💡"):
+    """Render an insight box below a chart."""
+    st.markdown(f"""
+    <div class="insight-box">
+        <div class="insight-title">{icon} {title}</div>
+        <div class="insight-text">{text}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+@st.cache_resource
+def load_prediction_model():
+    """Load the trained traffic prediction model."""
+    try:
+        model_data = joblib.load(MODEL_FILE)
+        return model_data
+    except Exception as e:
+        return None
+
+
+def get_los_class(volume):
+    """Convert traffic volume to LOS class."""
+    if volume < 20:
+        return 'A'
+    elif volume < 40:
+        return 'B'
+    elif volume < 60:
+        return 'C'
+    elif volume < 75:
+        return 'D'
+    elif volume < 90:
+        return 'E'
+    else:
+        return 'F'
+
+
+def create_prediction_features(dt, location, weather, avg_traffic=50):
+    """Create features for prediction."""
+    # Convert to pandas Timestamp
+    if not isinstance(dt, pd.Timestamp):
+        dt = pd.Timestamp(dt)
+
+    features = {
+        'hour': dt.hour,
+        'day_of_week': dt.dayofweek,
+        'month': dt.month,
+        'day_of_year': dt.dayofyear,
+        'week_of_year': dt.isocalendar()[1],
+        'hour_sin': np.sin(2 * np.pi * dt.hour / 24),
+        'hour_cos': np.cos(2 * np.pi * dt.hour / 24),
+        'dow_sin': np.sin(2 * np.pi * dt.dayofweek / 7),
+        'dow_cos': np.cos(2 * np.pi * dt.dayofweek / 7),
+        'month_sin': np.sin(2 * np.pi * dt.month / 12),
+        'month_cos': np.cos(2 * np.pi * dt.month / 12),
+        'is_weekend': 1 if dt.dayofweek >= 5 else 0,
+        'is_rush_hour': 1 if (7 <= dt.hour <= 9) or (16 <= dt.hour <= 19) else 0,
+        'is_rush_hour_morning': 1 if 7 <= dt.hour <= 9 else 0,
+        'is_rush_hour_evening': 1 if 16 <= dt.hour <= 19 else 0,
+        'is_night': 1 if dt.hour >= 22 or dt.hour <= 5 else 0,
+        'location_encoded': PREDICTION_LOCATIONS.index(location) if location in PREDICTION_LOCATIONS else 0,
+        'weather_encoded': WEATHER_OPTIONS.index(weather) if weather in WEATHER_OPTIONS else 0,
+        'traffic_lag_1h': avg_traffic,
+        'traffic_lag_24h': avg_traffic,
+        'traffic_rolling_mean_24h': avg_traffic,
+    }
+
+    return features
+
+
+def predict_traffic(model_data, features):
+    """Make traffic prediction."""
+    model = model_data['model']
+    scaler = model_data['scaler']
+    feature_cols = model_data['feature_cols']
+
+    X = pd.DataFrame([features])[feature_cols]
+    X_scaled = scaler.transform(X)
+
+    prediction = model.predict(X_scaled)[0]
+    return prediction
+
+
+def render_los_badge(los_class):
+    """Render LOS badge with color."""
+    los_colors = {
+        'A': '#2ecc71',
+        'B': '#3498db',
+        'C': '#f39c12',
+        'D': '#e67e22',
+        'E': '#e74c3c',
+        'F': '#8b0000'
+    }
+    color = los_colors.get(los_class, '#888')
+
+    st.markdown(f"""
+    <div style="background-color: {color}; color: white; padding: 1rem; border-radius: 8px;
+                text-align: center; margin: 1rem 0;">
+        <div style="font-size: 2rem; font-weight: bold;">LOS {los_class}</div>
+        <div style="font-size: 0.9rem; margin-top: 0.5rem;">{LOS_DESCRIPTIONS[los_class]}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 def main():
@@ -229,10 +380,23 @@ def main():
     else:
         metric_col4.info("No data available")
 
+    # KPI Insights
+    st.markdown("""
+    <div class="insight-box">
+        <div class="insight-title">📊 KPI Overview</div>
+        <div class="insight-text">
+        <b>Total Passengers:</b> Jumlah total penumpang Transjakarta pada periode terakhir yang dipilih.<br>
+        <b>Operating Buses:</b> Jumlah bus yang beroperasi aktif melayani penumpang.<br>
+        <b>Passengers per Bus:</b> Rata-rata efisiensi penggunaan bus - semakin tinggi semakin efisien.<br>
+        <b>Total Haltes:</b> Jumlah total halte/bus stop Transjakarta di seluruh Jakarta.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # Tabs for different views
     st.markdown("---")
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "Overview", "Passenger Analytics", "Traffic Patterns", "Halte & Routes", "Correlations"
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "Overview", "Passenger Analytics", "Traffic Patterns", "Halte & Routes", "Correlations", "Prediction"
     ])
 
     # TAB 1: OVERVIEW
@@ -265,6 +429,19 @@ def main():
                     margin=dict(l=0, r=0, t=20, b=40)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                # Insight
+                if len(quarterly_agg) > 1:
+                    growth = (quarterly_agg['jumlah_penumpang'].iloc[-1] - quarterly_agg['jumlah_penumpang'].iloc[0]) / quarterly_agg['jumlah_penumpang'].iloc[0] * 100
+                    peak = quarterly_agg.loc[quarterly_agg['jumlah_penumpang'].idxmax()]
+                    render_insight(
+                        "Tren Penumpang Per Kuartal",
+                        f"Visualisasi ini menunjukkan <b>fluktuasi jumlah penumpang Transjakarta per kuartal</b>. "
+                        f"Pertumbuhan sebesar <b>{growth:+.1f}%</b> dari awal sampai akhir periode. "
+                        f"Kuartal dengan penumpang terbanyak adalah <b>{peak['year_quarter']}</b> dengan <b>{peak['jumlah_penumpang']:,}</b> penumpang. "
+                        "Pola musiman biasanya terlihat dengan peningkatan pada awal tahun (Q1) dan menjelang akhir tahun (Q4)."
+                    )
+
             else:
                 st.warning("No bus data available")
 
@@ -288,6 +465,17 @@ def main():
                     margin=dict(l=0, r=0, t=20, b=40)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                # Insight
+                top_service = service_data.index[-1]
+                top_pct = service_data.values[-1] / service_data.sum() * 100
+                render_insight(
+                    "Distribusi Penumpang per Layanan",
+                    f"Layanan <b>{top_service}</b> menjadi kontributor terbesar dengan <b>{top_pct:.1f}%</b> dari total penumpang. "
+                    "Layanan BRT (Bus Rapid Transit) dan Angkutan Pengumpan Bus Kecil biasanya mendominasi karena melayani rute utama dan kawasan permukiman. "
+                    "Layanan pariwisata dan penugasan memiliki jumlah penumpang lebih sedikit karena bersifat khusus."
+                )
+
             else:
                 st.warning("No bus data available")
 
@@ -325,6 +513,20 @@ def main():
                 margin=dict(l=0, r=0, t=20, b=40)
             )
             st.plotly_chart(fig, width='stretch')
+
+            # Insight
+            morning_peak = hourly_avg[hourly_avg['hour'].between(7, 9)]['traffic_volume'].mean()
+            evening_peak = hourly_avg[hourly_avg['hour'].between(16, 19)]['traffic_volume'].mean()
+            night_avg = hourly_avg[hourly_avg['hour'].isin([22, 23, 0, 1, 2, 3, 4, 5])]['traffic_volume'].mean()
+
+            render_insight(
+                "Pola Lalu Lintas Per Jam",
+                f"Pola kemacetan Jakarta menunjukkan <b>dua puncak rush hour</b> yang jelas: "
+                f"<b>Pagi (07:00-09:00)</b> dengan volume rata-rata <b>{morning_peak:.1f}</b> saat orang berangkat kerja/sekolah, "
+                f"dan <b>Sore (16:00-19:00)</b> dengan volume <b>{evening_peak:.1f}</b> saat pulang kerja. "
+                f"Volume lalu lintas malam hari hanya <b>{night_avg:.1f}</b> atau sekitar <b>{night_avg/evening_peak*100:.0f}%</b> dari jam sibuk sore."
+            )
+
         else:
             st.warning("No traffic data available")
 
@@ -354,6 +556,14 @@ def main():
                     margin=dict(l=0, r=0, t=20, b=20)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                render_insight(
+                    "Market Share Layanan",
+                    "Pie chart ini menunjukkan <b>proporsi penumpang per jenis layanan</b>. "
+                    "Layanan dengan porsi terbesar mengindikasikan rute yang paling padat dan penting. "
+                    "Layanan pengumpan (feeder) berperan vital menghubungkan kawasan permukiman dengan koridor utama BRT."
+                )
+
             else:
                 st.warning("No data available")
 
@@ -382,6 +592,14 @@ def main():
                     margin=dict(l=0, r=0, t=20, b=40)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                render_insight(
+                    "Evolusi Layanan dari Waktu ke Waktu",
+                    "Grafik ini menunjukkan <b>tren penumpang setiap layanan sepanjang periode</b>. "
+                    "Perhatikan layanan yang mengalami pertumbuhan signifikan - ini menunjukkan keberhasilan ekspansi rute "
+                    "atau meningkatnya preferensi masyarakat terhadap layanan tersebut."
+                )
+
             else:
                 st.warning("No data available")
 
@@ -414,6 +632,14 @@ def main():
                 margin=dict(l=0, r=0, t=20, b=40)
             )
             st.plotly_chart(fig, width='stretch')
+
+            render_insight(
+                "Efisiensi Operasional Bus",
+                "Metrik <b>Passengers per Bus</b> mengukur seberapa efisien penggunaan armada bus. "
+                "Nilai lebih tinggi menunjukkan setiap bus mengangkut lebih banyak penumpang - indikasi baik secara operasional dan finansial. "
+                "Layanan BRT biasanya memiliki efisiensi tertinggi karena melayani korpad padat dengan frekuensi tinggi. "
+                "Penurunan efisiensi bisa menandakan perlu penyesuaian frekuensi atau rute."
+            )
 
     # TAB 3: TRAFFIC PATTERNS
     with tab3:
@@ -453,6 +679,19 @@ def main():
                     margin=dict(l=0, r=0, t=20, b=40)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                los_good = los_dist.get('A', 0) + los_dist.get('B', 0)
+                los_bad = los_dist.get('E', 0) + los_dist.get('F', 0)
+
+                render_insight(
+                    "Distribusi Level of Service (LOS)",
+                    f"<b>LOS A</b> = Arus bebas, <b>LOS F</b> = Macet total. "
+                    f"Dari data, <b>{los_good/total*100:.1f}%</b> kondisi lalu lintas berada pada LOS A-B (lancar), "
+                    f"sedangkan <b>{los_bad/total*100:.1f}%</b> pada LOS E-F (sangat padat/macet). "
+                    "Pola ini tipikal untuk kota besar - lalu lintas umumnya lancar di luar jam sibuk, "
+                    "namun beberapa lokasi dan waktu mengalami kemacetan signifikan."
+                )
+
             else:
                 st.warning("No data available")
 
@@ -476,6 +715,19 @@ def main():
                     margin=dict(l=0, r=0, t=20, b=40)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                weekday_avg = dow_avg[dow_avg['day_of_week'] < 5]['traffic_volume'].mean()
+                weekend_avg = dow_avg[dow_avg['day_of_week'] >= 5]['traffic_volume'].mean()
+
+                render_insight(
+                    "Pola Lalu Lintas per Hari",
+                    f"<b>Rata-rata weekday (Senin-Jumat): {weekday_avg:.1f}</b> vs "
+                    f"<b>weekend (Sabtu-Minggu): {weekend_avg:.1f}</b>. "
+                    f"Lalu lintas weekend lebih rendah sekitar <b>{(1-weekend_avg/weekday_avg)*100:.0f}%</b> "
+                    "karena aktivitas perkantoran dan sekolah berkurang. Jumat biasanya sedikit lebih lengang "
+                    "karena sebagian orang mulai libur akhir pekan."
+                )
+
             else:
                 st.warning("No data available")
 
@@ -501,6 +753,14 @@ def main():
             )
             st.plotly_chart(fig, width='stretch')
 
+            render_insight(
+                "Heatmap Pola Kemacetan",
+                "Heatmap ini memberikan <b>gambaran visual lengkap pola kemacetan</b>. "
+                "Warna merah menunjukkan volume lalu lintas tinggi (macet), hijau menunjukkan lancar. "
+                "Perhatikan pola diagonal - rush hour pagi (07:00-09:00) dan sore (16:00-19:00) "
+                "jelas terlihat sebagai area merah di hari kerja (Mon-Fri). Weekend cenderung hijau sepanjang hari."
+            )
+
         # Location Comparison
         st.markdown("#### Location Comparison")
         if df_traffic_filtered is not None and len(df_traffic_filtered) > 0:
@@ -520,6 +780,19 @@ def main():
                 margin=dict(l=0, r=0, t=20, b=40)
             )
             st.plotly_chart(fig, width='stretch')
+
+            highest = location_avg.index[-1]
+            lowest = location_avg.index[0]
+            diff_pct = (location_avg.values[-1] - location_avg.values[0]) / location_avg.values[0] * 100
+
+            render_insight(
+                "Perbandingan Volume Lalu Lintas per Lokasi",
+                f"Lokasi dengan volume tertinggi adalah <b>{highest}</b> sedangkan terendah <b>{lowest}</b>. "
+                f"Perbedaannya mencapai <b>{diff_pct:.0f}%</b>. "
+                "Lokasi seperti Tol Dalam Kota dan Sudirman-Thamrin biasanya memiliki volume tertinggi "
+                "karena merupakan akses utama ke pusat bisnis. Area pinggiran seperti Tangerang dan Bogor "
+                "cenderung lebih rendah kecuali pada jam commuting."
+            )
 
     # TAB 4: HALTE & ROUTES
     with tab4:
@@ -547,6 +820,18 @@ def main():
                     margin=dict(l=0, r=0, t=20, b=60)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                top_region = wilayah_counts.iloc[0]
+                total_haltes = len(df_halte)
+
+                render_insight(
+                    "Sebaran Halte per Wilayah",
+                    f"<b>{top_region['Wilayah']}</b> memiliki jumlah halte terbanyak dengan <b>{top_region['Count']}</b> halte "
+                    f"dari total <b>{total_haltes}</b> halte. "
+                    "Jakarta Selatan dan Timur biasanya memiliki halte terbanyak karena luas wilayah dan banyaknya kawasan pemukimen. "
+                    "Sebaran halte yang merata penting untuk memastikan aksesibilitas transportasi publik yang adil."
+                )
+
             else:
                 st.warning("No halte data available")
 
@@ -570,6 +855,16 @@ def main():
                     margin=dict(l=0, r=0, t=20, b=40)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                top_kec = kecamatan_counts.iloc[0]
+
+                render_insight(
+                    "Kecamatan dengan Halte Terbanyak",
+                    f"Kecamatan <b>{top_kec['Kecamatan']}</b> memiliki <b>{top_kec['Count']}</b> halte terbanyak. "
+                    "Kecamatan dengan halte terbanyak biasanya merupakan kawasan dengan kepadatan penduduk tinggi "
+                    "atau menjadi hub transportasi penting. Halte yang banyak menunjukkan keterjangkauan transportasi publik yang baik."
+                )
+
             else:
                 st.warning("No halte data available")
 
@@ -609,6 +904,14 @@ def main():
                 margin=dict(l=0, r=0, t=20, b=40)
             )
             st.plotly_chart(fig, width='stretch')
+
+            render_insight(
+                "Peta Sebaran Halte Transjakarta",
+                "Peta ini menunjukkan <b>lokasi geografis semua halte</b> dengan pewarnaan per wilayah administratif. "
+                "Halte terkonsentrasi di area pusat kota dan koridor utama. Hover pada titik untuk melihat nama halte. "
+                "Sebaran yang merata mengindikasikan pelayanan transportasi publik yang menjangkau seluruh wilayah Jakarta."
+            )
+
         else:
             st.warning("No halte data available")
 
@@ -633,6 +936,13 @@ def main():
                     margin=dict(l=0, r=0, t=40, b=20)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                render_insight(
+                    "Komposisi Armada Berdasarkan Tipe Bus",
+                    "Pie chart menunjukkan <b>proporsi tipe bus dalam armada</b>. "
+                    "BRT (Bus Rapid Transit) adalah backbone sistem dengan koridor dedicated. "
+                    "Bus kecil berperan sebagai feeder menghubungkan kawasan pemukimen ke koridor utama."
+                )
 
             with col2:
                 st.info(f"Total Routes: {len(df_trayek)}")
@@ -671,18 +981,33 @@ def main():
                     margin=dict(l=0, r=0, t=20, b=60)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                clear_traffic = weather_impact[weather_impact['weather'] == 'clear']['mean'].values[0]
+                rain_traffic = weather_impact[weather_impact['weather'].isin(['moderate_rain', 'heavy_rain', 'storm'])]['mean'].mean()
+                increase_pct = (rain_traffic - clear_traffic) / clear_traffic * 100
+
+                render_insight(
+                    "Dampak Cuaca terhadap Lalu Lintas",
+                    f"Lalu lintas pada kondisi hujan sedang/lebat meningkat sekitar <b>{increase_pct:.0f}%</b> "
+                    f"dibanding cuaca cerah ({clear_traffic:.1f} vs {rain_traffic:.1f}). "
+                    "Hujan menyebabkan: (1) kecepatan kendaraan turun, (2) pengendara lebih hati-hati, "
+                    "(3) jadi rawan kecelakaan, (4) pengguna motor pindah ke mobil. "
+                    "Badai (storm) bisa menimbulkan kemacetan parah hingga 60% lebih tinggi."
+                )
+
             else:
                 st.warning("No data available")
 
         with col2:
             st.markdown("#### Rush Hour vs Non-Rush Hour")
             if df_traffic_filtered is not None:
-                df_traffic_filtered['is_rush'] = ((df_traffic_filtered['hour'] >= 7) &
-                                                  (df_traffic_filtered['hour'] <= 9)) | \
-                                                 ((df_traffic_filtered['hour'] >= 16) &
-                                                  (df_traffic_filtered['hour'] <= 19))
+                df_traffic_copy = df_traffic_filtered.copy()
+                df_traffic_copy['is_rush'] = ((df_traffic_copy['hour'] >= 7) &
+                                              (df_traffic_copy['hour'] <= 9)) | \
+                                             ((df_traffic_copy['hour'] >= 16) &
+                                              (df_traffic_copy['hour'] <= 19))
 
-                rush_comparison = df_traffic_filtered.groupby('is_rush')['traffic_volume'].mean().reset_index()
+                rush_comparison = df_traffic_copy.groupby('is_rush')['traffic_volume'].mean().reset_index()
                 rush_comparison['Period'] = rush_comparison['is_rush'].map({True: 'Rush Hour', False: 'Normal Hours'})
 
                 fig = go.Figure(go.Bar(
@@ -698,6 +1023,20 @@ def main():
                     margin=dict(l=0, r=0, t=20, b=40)
                 )
                 st.plotly_chart(fig, width='stretch')
+
+                rush_vol = rush_comparison[rush_comparison['Period'] == 'Rush Hour']['traffic_volume'].values[0]
+                normal_vol = rush_comparison[rush_comparison['Period'] == 'Normal Hours']['traffic_volume'].values[0]
+                ratio = rush_vol / normal_vol
+
+                render_insight(
+                    "Perbandingan Jam Sibuk vs Normal",
+                    f"Volume lalu lintas jam sibuk lebih tinggi <b>{ratio:.2f}x</b> dibanding jam normal "
+                    f"({rush_vol:.1f} vs {normal_vol:.1f}). "
+                    "Jam sibuk pagi (07:00-09:00) dan sore (16:00-19:00) mewakili peak commuting "
+                    "karyawan pelajar dan mahasiswa. Di luar jam ini, lalu lintas cenderung lancer "
+                    "meski tetap ada aktivitas ekonomi dan sosial."
+                )
+
             else:
                 st.warning("No data available")
 
@@ -714,6 +1053,243 @@ def main():
             summary_stats.columns = ['Year-Quarter', 'Service Type', 'Total Passengers', 'Buses', 'Pax per Bus']
 
             st.dataframe(summary_stats, use_container_width=True, hide_index=True)
+
+            render_insight(
+                "Ringkasan Statistik Operasional",
+                "Tabel ini menyajikan <b>data lengkap per kuartal per layanan</b>. Gunakan untuk analisis mendalam: "
+                "identifikasi tren jangka panjang, bandingkan performa layanan, dan temukan insight operasional. "
+                "Kolom 'Pax per Bus' adalah KPI efisiensi - semakin tinggi semakin baik."
+            )
+
+    # TAB 6: PREDICTION
+    with tab6:
+        st.markdown("### Prediksi Kemacetan")
+
+        # Load model
+        model_data = load_prediction_model()
+
+        if model_data is None:
+            st.error("""
+            Model prediksi tidak ditemukan. Pastikan file `traffic_model.pkl` ada.
+
+            Untuk membuat model, jalankan:
+            ```python
+            python traffic_prediction_model.py
+            ```
+            """)
+        else:
+            st.info("🤖 Model prediksi menggunakan Random Forest yang dilatih dengan data pola kemacetan Jakarta")
+
+            # Get average traffic from data for lag features
+            avg_traffic = 50
+            if df_traffic_filtered is not None:
+                avg_traffic = df_traffic_filtered['traffic_volume'].mean()
+
+            col1, col2, col3 = st.columns([1, 1, 1])
+
+            with col1:
+                pred_date = st.date_input(
+                    "Tanggal Prediksi",
+                    value=datetime.now().date() + timedelta(days=1),
+                    min_value=datetime.now().date(),
+                    max_value=datetime.now().date() + timedelta(days=365)
+                )
+
+            with col2:
+                pred_hour = st.slider(
+                    "Jam",
+                    min_value=0,
+                    max_value=23,
+                    value=8
+                )
+
+            with col3:
+                pred_location = st.selectbox(
+                    "Lokasi",
+                    PREDICTION_LOCATIONS,
+                    index=0
+                )
+
+            col4, col5 = st.columns([1, 1])
+
+            with col4:
+                pred_weather = st.selectbox(
+                    "Cuaca",
+                    WEATHER_OPTIONS,
+                    index=0,
+                    format_func=lambda x: x.replace('_', ' ').title()
+                )
+
+            with col5:
+                st.write("")  # spacing
+                st.write("")  # spacing
+                predict_btn = st.button("🔮 Prediksi Traffic", type="primary", use_container_width=True)
+
+            # Prediction result
+            if predict_btn or 'prediction_made' not in st.session_state:
+                st.markdown("---")
+
+                # Create datetime for prediction
+                pred_dt = pd.Timestamp.combine(pred_date, datetime.min.time()).replace(hour=pred_hour)
+
+                # Create features and predict
+                features = create_prediction_features(pred_dt, pred_location, pred_weather, avg_traffic)
+                prediction = predict_traffic(model_data, features)
+                los_class = get_los_class(prediction)
+
+                # Display results
+                result_col1, result_col2, result_col3 = st.columns([1, 1, 1])
+
+                with result_col1:
+                    st.markdown("""
+                    <div style="text-align: center; padding: 1rem; background: #f0f2f6; border-radius: 8px;">
+                        <div style="font-size: 0.9rem; color: #666;">Volume Lalu Lintas</div>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: #1f77b4;">{:.1f}</div>
+                        <div style="font-size: 0.8rem; color: #999;">Skala 0-100</div>
+                    </div>
+                    """.format(prediction), unsafe_allow_html=True)
+
+                with result_col2:
+                    render_los_badge(los_class)
+
+                with result_col3:
+                    st.markdown(f"""
+                    <div style="text-align: center; padding: 1rem; background: #f0f2f6; border-radius: 8px;">
+                        <div style="font-size: 0.9rem; color: #666;">Waktu</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #333;">{pred_dt.strftime("%H:%M")}</div>
+                        <div style="font-size: 0.9rem; color: #999;">{pred_dt.strftime("%A, %d %B %Y")}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                # Additional info
+                info_col1, info_col2, info_col3 = st.columns(3)
+
+                with info_col1:
+                    is_rush = (7 <= pred_hour <= 9) or (16 <= pred_hour <= 19)
+                    if is_rush:
+                        st.warning("⚠️ Jam Sibuk - Diperkirakan padat")
+                    else:
+                        st.success("✓ Di luar jam sibuk")
+
+                with info_col2:
+                    is_weekend = pred_dt.dayofweek >= 5
+                    if is_weekend:
+                        st.info("📅 Akhir Pekan - Lalu lintas biasanya lebih lancar")
+                    else:
+                        st.info("📅 Hari Kerja")
+
+                with info_col3:
+                    weather_impact = {"clear": 0, "partly_cloudy": 2, "cloudy": 3, "light_rain": 15, "moderate_rain": 25, "heavy_rain": 40, "storm": 60}
+                    impact = weather_impact.get(pred_weather, 0)
+                    if impact > 20:
+                        st.error(f"🌧️ Cuaca buruk - Traffic bisa naik ~{impact}%")
+                    elif impact > 10:
+                        st.warning(f"🌦️ Hujan ringan - Traffic bisa naik ~{impact}%")
+                    else:
+                        st.success("☀️ Cuaca mendukung")
+
+                st.markdown("---")
+
+                # Full day prediction
+                st.markdown("#### Prediksi Full Day")
+
+                day_start = pred_dt.replace(hour=0)
+                hours = list(range(24))
+                predictions_day = []
+
+                for hour in hours:
+                    dt = day_start.replace(hour=hour)
+                    feat = create_prediction_features(dt, pred_location, pred_weather, avg_traffic)
+                    pred = predict_traffic(model_data, feat)
+                    predictions_day.append(pred)
+
+                pred_df = pd.DataFrame({
+                    'Hour': hours,
+                    'Predicted_Volume': predictions_day,
+                    'LOS': [get_los_class(p) for p in predictions_day]
+                })
+
+                # Create prediction chart
+                fig = go.Figure()
+
+                los_colors = {'A': '#2ecc71', 'B': '#3498db', 'C': '#f39c12', 'D': '#e67e22', 'E': '#e74c3c', 'F': '#8b0000'}
+
+                for los in ['F', 'E', 'D', 'C', 'B', 'A']:
+                    data = pred_df[pred_df['LOS'] == los]
+                    if len(data) > 0:
+                        fig.add_trace(go.Bar(
+                            x=data['Hour'],
+                            y=data['Predicted_Volume'],
+                            name=f'LOS {los}',
+                            marker_color=los_colors[los],
+                            hovertemplate=f"Hour: %{{x}}:00<br>Traffic: %{{y:.1f}}<br>LOS {los}<extra></extra>"
+                        ))
+
+                # Highlight selected hour
+                fig.add_vline(x=pred_hour, line_dash="dash", line_color="black",
+                             annotation_text=f"Selected: {pred_hour}:00")
+
+                fig.update_layout(
+                    barmode='stack',
+                    xaxis_title="Jam",
+                    yaxis_title="Volume Prediksi",
+                    height=400,
+                    hovermode='x unified',
+                    legend_title="Level of Service",
+                    margin=dict(l=0, r=0, t=20, b=40)
+                )
+
+                st.plotly_chart(fig, width='stretch')
+
+                render_insight(
+                    "Prediksi Lalu Lintas 24 Jam",
+                    f"Grafik di atas menunjukkan <b>prediksi volume lalu lintas untuk 24 jam</b> di lokasi {pred_location}. "
+                    f"Jam dengan warna merah/orange (LOS E-F) menunjukkan kemacetan parah. "
+                    f"Perhatikan puncak pagi (07:00-09:00) dan sore (16:00-19:00). "
+                    f"Cuaca {pred_weather.replace('_', ' ')} juga mempengaruhi prediksi."
+                )
+
+                # Location comparison
+                st.markdown("#### Perbandingan Prediksi per Lokasi")
+
+                location_predictions = []
+                for loc in PREDICTION_LOCATIONS[:8]:  # Top 8 locations
+                    feat = create_prediction_features(pred_dt, loc, pred_weather, avg_traffic)
+                    pred = predict_traffic(model_data, feat)
+                    location_predictions.append({
+                        'Location': loc,
+                        'Predicted_Volume': pred,
+                        'LOS': get_los_class(pred)
+                    })
+
+                loc_pred_df = pd.DataFrame(location_predictions).sort_values('Predicted_Volume', ascending=True)
+
+                fig = go.Figure(go.Bar(
+                    x=loc_pred_df['Predicted_Volume'],
+                    y=loc_pred_df['Location'],
+                    orientation='h',
+                    marker=dict(
+                        color=[los_colors.get(los, '#888') for los in loc_pred_df['LOS']]
+                    ),
+                    text=loc_pred_df['LOS'],
+                    textposition='outside'
+                ))
+
+                fig.update_layout(
+                    xaxis_title="Volume Prediksi",
+                    yaxis_title="Lokasi",
+                    height=400,
+                    margin=dict(l=0, r=0, t=20, b=40)
+                )
+
+                st.plotly_chart(fig, width='stretch')
+
+                render_insight(
+                    "Perbandingan Antar Lokasi",
+                    "Grafik ini membandingkan prediksi kemacetan di berbagai lokasi pada waktu yang sama. "
+                    "Lokasi dengan warna lebih merah menunjukkan prediksi kemacetan lebih parah. "
+                    "Gunakan untuk memilih rute alternatif jika lokasi tujuan Anda memiliki LOS merah/orange."
+                )
 
     # Footer
     st.markdown("---")
