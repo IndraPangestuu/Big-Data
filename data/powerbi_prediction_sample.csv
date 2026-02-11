@@ -1,0 +1,25 @@
+Year,Month,Day,Hour,DateTime,Location,Weather,Predicted_Volume,LOS,LOS_Description
+2025,3,15,0,2025-03-15 00:00:00,Sudirman-Thamrin,clear,13.25,A,Free Flow (0-20) - Lancar
+2025,3,15,1,2025-03-15 01:00:00,Sudirman-Thamrin,clear,14.02,A,Free Flow (0-20) - Lancar
+2025,3,15,2,2025-03-15 02:00:00,Sudirman-Thamrin,clear,15.66,A,Free Flow (0-20) - Lancar
+2025,3,15,3,2025-03-15 03:00:00,Sudirman-Thamrin,clear,22.28,B,Reasonably Free (20-40) - Stabil
+2025,3,15,4,2025-03-15 04:00:00,Sudirman-Thamrin,clear,24.28,B,Reasonably Free (20-40) - Stabil
+2025,3,15,5,2025-03-15 05:00:00,Sudirman-Thamrin,clear,28.23,B,Reasonably Free (20-40) - Stabil
+2025,3,15,6,2025-03-15 06:00:00,Sudirman-Thamrin,clear,53.0,C,Stable (40-60) - Mulai padat
+2025,3,15,7,2025-03-15 07:00:00,Sudirman-Thamrin,clear,70.85,D,Approaching Unstable (60-75) - Padat
+2025,3,15,8,2025-03-15 08:00:00,Sudirman-Thamrin,clear,71.09,D,Approaching Unstable (60-75) - Padat
+2025,3,15,9,2025-03-15 09:00:00,Sudirman-Thamrin,clear,59.29,C,Stable (40-60) - Mulai padat
+2025,3,15,10,2025-03-15 10:00:00,Sudirman-Thamrin,clear,50.03,C,Stable (40-60) - Mulai padat
+2025,3,15,11,2025-03-15 11:00:00,Sudirman-Thamrin,clear,47.15,C,Stable (40-60) - Mulai padat
+2025,3,15,12,2025-03-15 12:00:00,Sudirman-Thamrin,clear,45.53,C,Stable (40-60) - Mulai padat
+2025,3,15,13,2025-03-15 13:00:00,Sudirman-Thamrin,clear,48.47,C,Stable (40-60) - Mulai padat
+2025,3,15,14,2025-03-15 14:00:00,Sudirman-Thamrin,clear,50.99,C,Stable (40-60) - Mulai padat
+2025,3,15,15,2025-03-15 15:00:00,Sudirman-Thamrin,clear,57.03,C,Stable (40-60) - Mulai padat
+2025,3,15,16,2025-03-15 16:00:00,Sudirman-Thamrin,clear,70.37,D,Approaching Unstable (60-75) - Padat
+2025,3,15,17,2025-03-15 17:00:00,Sudirman-Thamrin,clear,72.5,D,Approaching Unstable (60-75) - Padat
+2025,3,15,18,2025-03-15 18:00:00,Sudirman-Thamrin,clear,72.58,D,Approaching Unstable (60-75) - Padat
+2025,3,15,19,2025-03-15 19:00:00,Sudirman-Thamrin,clear,52.29,C,Stable (40-60) - Mulai padat
+2025,3,15,20,2025-03-15 20:00:00,Sudirman-Thamrin,clear,44.69,C,Stable (40-60) - Mulai padat
+2025,3,15,21,2025-03-15 21:00:00,Sudirman-Thamrin,clear,31.38,B,Reasonably Free (20-40) - Stabil
+2025,3,15,22,2025-03-15 22:00:00,Sudirman-Thamrin,clear,18.87,A,Free Flow (0-20) - Lancar
+2025,3,15,23,2025-03-15 23:00:00,Sudirman-Thamrin,clear,16.02,A,Free Flow (0-20) - Lancar

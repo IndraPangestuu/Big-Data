@@ -1,0 +1,66 @@
+Period,Quarter,Service_Type,Bus_Count,Passenger_Count,Year,Quarter_Num,Year_Quarter,Passengers_Per_Bus,Day_Name,Is_Weekend,Is_Rush_Hour
+202406,2,Layanan BRT,834,32138016,2024,2,2024-Q2,38534.8,N/A,No,No
+202406,2,Layanan Angkutan Pengumpan Integrasi,625,10796152,2024,2,2024-Q2,17273.8,N/A,No,No
+202406,2,Layanan Angkutan Pengumpan Bus Kecil,2737,37169768,2024,2,2024-Q2,13580.5,N/A,No,No
+202406,2,Layanan Angkutan Pengumpan Transjabodetabek,156,3176144,2024,2,2024-Q2,20359.9,N/A,No,No
+202406,2,Layanan Angkutan Pengumpan Rusun,35,228678,2024,2,2024-Q2,6533.7,N/A,No,No
+202406,2,Layanan Angkutan Penugasan,5,4245,2024,2,2024-Q2,849.0,N/A,No,No
+202406,2,Layanan Angkutan Pariwisata,12,234699,2024,2,2024-Q2,19558.2,N/A,No,No
+202406,2,Layanan Angkutan Transjakarta Cares,14,13237,2024,2,2024-Q2,945.5,N/A,No,No
+202412,4,Layanan Bus Rapid Transit,837,38220284,2024,4,2024-Q4,45663.4,N/A,No,No
+202412,4,Layanan Angkutan Pengumpan Integrasi,669,12833654,2024,4,2024-Q4,19183.3,N/A,No,No
+202412,4,Layanan Angkutan Pengumpan Bus Kecil,2741,46379482,2024,4,2024-Q4,16920.6,N/A,No,No
+202412,4,Layanan Angkutan Pengumpan Transjabodetabek,172,3955703,2024,4,2024-Q4,22998.3,N/A,No,No
+202412,4,Layanan Angkutan Pengumpan Rusun,35,317450,2024,4,2024-Q4,9070.0,N/A,No,No
+202412,4,Layanan Angkutan Penugasan,13,40643,2024,4,2024-Q4,3126.4,N/A,No,No
+202412,4,Layanan Angkutan Pariwisata,14,219746,2024,4,2024-Q4,15696.1,N/A,No,No
+202412,4,Layanan Angkutan Transjakarta Cares,17,17370,2024,4,2024-Q4,1021.8,N/A,No,No
+202506,2,Layanan Angkutan Pengumpan Integrasi,650,12192791,2025,2,2025-Q2,18758.1,N/A,No,No
+202506,2,Layanan Angkutan Pengumpan Bus Kecil,2786,41405522,2025,2,2025-Q2,14862.0,N/A,No,No
+202506,2,Layanan Angkutan Pengumpan Transjabodetabek,237,4628719,2025,2,2025-Q2,19530.5,N/A,No,No
+202506,2,Layanan Angkutan Pengumpan Rusun,29,324998,2025,2,2025-Q2,11206.8,N/A,No,No
+202506,2,Layanan Angkutan Penugasan,8,27946,2025,2,2025-Q2,3493.2,N/A,No,No
+202506,2,Layanan Angkutan Pariwisata,12,210829,2025,2,2025-Q2,17569.1,N/A,No,No
+202506,2,Layanan Angkutan Transjakarta Cares,15,15368,2025,2,2025-Q2,1024.5,N/A,No,No
+202503,1,Layanan Bus Rapid Transit,853,35178694,2025,1,2025-Q1,41241.1,N/A,No,No
+202503,1,Layanan Angkutan Pengumpan Integrasi,670,11967029,2025,1,2025-Q1,17861.2,N/A,No,No
+202503,1,Layanan Angkutan Pengumpan Bus Kecil,2614,41739607,2025,1,2025-Q1,15967.7,N/A,No,No
+202503,1,Layanan Angkutan Pengumpan Transjabodetabek,157,3877470,2025,1,2025-Q1,24697.3,N/A,No,No
+202503,1,Layanan Angkutan Pengumpan Rusun,27,315030,2025,1,2025-Q1,11667.8,N/A,No,No
+202503,1,Layanan Angkutan Penugasan,9,14826,2025,1,2025-Q1,1647.3,N/A,No,No
+202503,1,Layanan Angkutan Pariwisata,13,181459,2025,1,2025-Q1,13958.4,N/A,No,No
+202503,1,Layanan Angkutan Transjakarta Cares,9,14326,2025,1,2025-Q1,1591.8,N/A,No,No
+202506,2,Layanan BRT,834,36654304,2025,2,2025-Q2,43950.0,N/A,No,No
+202509,3,Layanan BRT,876,40755528,2025,3,2025-Q3,46524.6,N/A,No,No
+202509,3,Layanan Angkutan Pengumpan Integrasi,717,13514595,2025,3,2025-Q3,18848.8,N/A,No,No
+202509,3,Layanan Angkutan Pengumpan Bus Kecil,2782,48040733,2025,3,2025-Q3,17268.4,N/A,No,No
+202509,3,Layanan Angkutan Pengumpan Transjabodetabek,273,6325259,2025,3,2025-Q3,23169.4,N/A,No,No
+202509,3,Layanan Angkutan Pengumpan Rusun,27,375136,2025,3,2025-Q3,13893.9,N/A,No,No
+202509,3,Layanan Angkutan Penugasan,10,62427,2025,3,2025-Q3,6242.7,N/A,No,No
+202509,3,Layanan Angkutan Pariwisata,9,103786,2025,3,2025-Q3,11531.8,N/A,No,No
+202509,3,Layanan Angkutan Transjakarta Cares,22,21184,2025,3,2025-Q3,962.9,N/A,No,No
+202409,3,Layanan Angkutan Pengumpan Integrasi,659,12650391,2024,3,2024-Q3,19196.3,N/A,No,No
+202409,3,Layanan Angkutan Pengumpan Bus Kecil,2706,44331656,2024,3,2024-Q3,16382.7,N/A,No,No
+202409,3,Layanan Angkutan Pengumpan Transjabodetabek,174,3767237,2024,3,2024-Q3,21650.8,N/A,No,No
+202409,3,Layanan Angkutan Pengumpan Rusun,33,300434,2024,3,2024-Q3,9104.1,N/A,No,No
+202409,3,Layanan Angkutan Penugasan,10,21186,2024,3,2024-Q3,2118.6,N/A,No,No
+202409,3,Layanan Angkutan Pariwisata,14,230137,2024,3,2024-Q3,16438.4,N/A,No,No
+202409,3,Layanan Angkutan Transjakarta Cares,18,17289,2024,3,2024-Q3,960.5,N/A,No,No
+202409,3,Layanan BRT,826,36922651,2024,3,2024-Q3,44700.5,N/A,No,No
+202312,4,Layanan BRT,781,119398392,2023,4,2023-Q4,152878.9,N/A,No,No
+202312,4,Layanan Angkutan Pengumpan Integrasi,594,37477739,2023,4,2023-Q4,63093.8,N/A,No,No
+202312,4,Layanan Angkutan Pengumpan Bus Kecil,2695,112379110,2023,4,2023-Q4,41699.1,N/A,No,No
+202312,4,Layanan Angkutan Pengumpan Transjabodetabek,158,8737250,2023,4,2023-Q4,55299.1,N/A,No,No
+202312,4,Layanan Angkutan Pengumpan Rusun,31,779419,2023,4,2023-Q4,25142.5,N/A,No,No
+202312,4,Layanan Angkutan Penugasan,6,172745,2023,4,2023-Q4,28790.8,N/A,No,No
+202312,4,Layanan Angkutan Pariwisata,12,509362,2023,4,2023-Q4,42446.8,N/A,No,No
+202312,4,Layanan Angkutan Transjakarta Cares,16,32613,2023,4,2023-Q4,2038.3,N/A,No,No
+202312,4,Layanan Angkutan Premium Royal Trans,62,862688,2023,4,2023-Q4,13914.3,N/A,No,No
+202403,1,Layanan BRT,813,31576988,2024,1,2024-Q1,38840.1,N/A,No,No
+202403,1,Layanan Angkutan Pengumpan Integrasi,618,11042240,2024,1,2024-Q1,17867.7,N/A,No,No
+202403,1,Layanan Angkutan Pengumpan Bus Kecil,2746,40657407,2024,1,2024-Q1,14806.0,N/A,No,No
+202403,1,Layanan Angkutan Pengumpan Transjabodetabek,154,2845757,2024,1,2024-Q1,18478.9,N/A,No,No
+202403,1,Layanan Angkutan Pengumpan Rusun,34,228606,2024,1,2024-Q1,6723.7,N/A,No,No
+202403,1,Layanan Angkutan Penugasan,3,20932,2024,1,2024-Q1,6977.3,N/A,No,No
+202403,1,Layanan Angkutan Pariwisata,12,146313,2024,1,2024-Q1,12192.8,N/A,No,No
+202403,1,Layanan Angkutan Transjakarta Cares,15,13793,2024,1,2024-Q1,919.5,N/A,No,No
